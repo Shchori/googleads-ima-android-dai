@@ -86,7 +86,7 @@ After creating the webview, we load in the URL and request focus
     }
 ```
 
-In this example, we are manually generating a hardcoded interactive url in the `generateIAdUrl()` function via `final String tagUrl = "http://192.168.86.200:3333/tag/get.php?tag=1maft2&kind=placement&device=ctv-html";`. In live instance or if testing against an actual ad response please use `final String tagUrl = mAdInfo.getResourceValue();`
+In this example, we are manually generating a hardcoded interactive url in the `generateIAdUrl()` function via `final String tagUrl = "http://tv.innovid.com/tag/get.php?tag=1maft2&kind=placement&device=ctv-html";`. In live instance or if testing against an actual ad response please use `final String tagUrl = mAdInfo.getResourceValue();`
 
 
 ```
@@ -94,7 +94,7 @@ In this example, we are manually generating a hardcoded interactive url in the `
         String encodedParams = "";
 
     //     final String tagUrl = mAdInfo.getResourceValue();
-        final String tagUrl = "http://192.168.86.200:3333/tag/get.php?tag=1maft2&kind=placement&device=ctv-html";
+        final String tagUrl = "http://tv.innovid.com/tag/get.php?tag=1maft2&kind=placement&device=ctv-html";
 
         try {
             encodedParams = URLEncoder.encode(getIAdStartupParametersAsString(), "UTF-8");
