@@ -111,8 +111,11 @@ When configuring the webview, make sure to enable javascript, use wide viewport,
 
 ## 9. Keymap
 In order to process key events, you will need to create a map of action value pairs in a JSON and pass this to the Innovid ad object.
-This is also where device and advertising ID are passed along. This information is encoded and appended to the companion URL that is loaded into the webview
-
+This is also where device and advertising ID are passed along. This information is encoded and appended to the companion URL that is loaded into the webview.
+If using SSAI, it is mandatory that you define "ssai" as true when defining startup parameters.
+```
+json.put("ssai", true);
+```
 [Example][keymap link]
 
 
