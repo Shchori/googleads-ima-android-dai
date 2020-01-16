@@ -272,6 +272,7 @@ public class InnovidAdWrapper {
         result.put("iroll-video-midpoint", InnovidAdEventType.VIDEO_MIDPOINT);
         result.put("iroll-video-third-quartile", InnovidAdEventType.VIDEO_THIRD_QUARTILE);
         result.put("iroll-video-completed", InnovidAdEventType.VIDEO_COMPLETED);
+        result.put("iroll-back-pressed", InnovidAdEventType.BACK_PRESSED);
 
         return result;
     }
@@ -303,7 +304,8 @@ public class InnovidAdWrapper {
         VIDEO_FIRST_QUARTILE,
         VIDEO_MIDPOINT,
         VIDEO_THIRD_QUARTILE,
-        VIDEO_COMPLETED
+        VIDEO_COMPLETED,
+        BACK_PRESSED
     }
 
     public enum SSAIPlaybackState {
