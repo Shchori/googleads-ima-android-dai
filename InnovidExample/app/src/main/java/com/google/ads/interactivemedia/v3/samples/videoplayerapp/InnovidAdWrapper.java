@@ -174,8 +174,8 @@ public class InnovidAdWrapper {
     private String generateIAdUrl() {
         String encodedParams = "";
 
-//        final String tagUrl = mAdInfo.getResourceValue();
-        final String tagUrl = "http://tv.innovid.com/tag/get.php?tag=1maft2&kind=placement&device=ctv-html";
+        final String tagUrl = mAdInfo.getResourceValue();
+//        final String tagUrl = "http://tv.innovid.com/tag/get.php?tag=1maft2&kind=placement&device=ctv-html";
 
         try {
             encodedParams = URLEncoder.encode(getIAdStartupParametersAsString(), "UTF-8");
