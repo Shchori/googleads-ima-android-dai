@@ -58,8 +58,13 @@ public class MyActivity extends AppCompatActivity {
         mVideoPlayer = new SampleVideoPlayer(rootView.getContext(),
                 (PlayerView) rootView.findViewById(R.id.playerView));
         mVideoPlayer.enableControls(false);
-        mAdsWrapper = new SampleAdsWrapper(this, mVideoPlayer,
-                adUiContainer, (WebView) rootView.findViewById(R.id.webView));
+        mAdsWrapper = new SampleAdsWrapper(
+                this,
+                mVideoPlayer,
+                (ViewGroup) rootView.findViewById(R.id.playerView),
+                adUiContainer,
+                (WebView) rootView.findViewById(R.id.webView)
+        );
         mAdsWrapper.setFallbackUrl(DEFAULT_STREAM_URL);
         mAdsWrapper.setAdvertisingId(getAdvertisingId());
 

@@ -83,21 +83,23 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
         void log(String logMessage);
     }
 
-    private ImaSdkFactory mSdkFactory;
-    private AdsLoader mAdsLoader;
-    private StreamDisplayContainer mDisplayContainer;
-    private StreamManager mStreamManager;
-    private List<VideoStreamPlayer.VideoStreamPlayerCallback> mPlayerCallbacks;
+    private ImaSdkFactory sdkFactory;
+    private AdsLoader adsLoader;
+    private StreamDisplayContainer streamDisplayContainer;
+    private StreamManager streamManager;
+    private List<VideoStreamPlayer.VideoStreamPlayerCallback> videoPlayerCallbacks;
 
-    private SampleVideoPlayer mVideoPlayer;
-    private Context mContext;
-    private ViewGroup mAdUiContainer;
 
-    private String mFallbackUrl;
-    private Logger mLogger;
-    private InnovidAdWrapper mInteractiveAd;
-    private WebView mWebView;
-    private String mAdvertisingId;
+    private String fallbackUrl;
+    private Logger logger;
+    private InnovidAdWrapper innovidAdWrapper;
+    private String advertisingId;
+
+    private final Context context;
+    private final SampleVideoPlayer videoPlayer;
+    private final ViewGroup videoPlayerContainer;
+    private final ViewGroup adUiContainer;
+    private final WebView webView;
 
 
     /**
@@ -105,16 +107,24 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
      *
      * @param context       the app's context.
      * @param videoPlayer   underlying HLS video player.
+     * @param videoPlayerContainer ViewGroup containing the video player view
      * @param adUiContainer ViewGroup in which to display the ad's UI.
+     * @param webView WebView in which the ad is displayed.
      */
-    public SampleAdsWrapper(Context context, SampleVideoPlayer videoPlayer,
-                            ViewGroup adUiContainer, WebView webView) {
-        mVideoPlayer = videoPlayer;
-        mContext = context;
-        mAdUiContainer = adUiContainer;
-        mSdkFactory = ImaSdkFactory.getInstance();
-        mPlayerCallbacks = new ArrayList<>();
-        mWebView = webView;
+    public SampleAdsWrapper(
+            Context context,
+            SampleVideoPlayer videoPlayer,
+            ViewGroup videoPlayerContainer,
+            ViewGroup adUiContainer,
+            WebView webView
+    ) {
+        this.context = context;
+        this.videoPlayer = videoPlayer;
+        this.videoPlayerContainer = videoPlayerContainer;
+        this.adUiContainer = adUiContainer;
+        this.webView = webView;
+        sdkFactory = ImaSdkFactory.getInstance();
+        videoPlayerCallbacks = new ArrayList<>();
         createAdsLoader();
     }
 
@@ -134,14 +144,14 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
         // Change any settings as necessary here.
         settings.setPlayerType(PLAYER_TYPE);
         enableWebViewDebugging();
-        mDisplayContainer = mSdkFactory.createStreamDisplayContainer();
+        streamDisplayContainer = sdkFactory.createStreamDisplayContainer();
         VideoStreamPlayer videoStreamPlayer = createVideoStreamPlayer();
-        mVideoPlayer.setSampleVideoPlayerCallback(
+        videoPlayer.setSampleVideoPlayerCallback(
                 new SampleVideoPlayerCallback() {
                     @Override
                     public void onUserTextReceived(String userText) {
                         for (VideoStreamPlayer.VideoStreamPlayerCallback callback :
-                                mPlayerCallbacks) {
+                                videoPlayerCallbacks) {
                             callback.onUserTextReceived(userText);
                         }
                     }
@@ -150,25 +160,25 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
                     public void onSeek(int windowIndex, long positionMs) {
                         // See if we would seek past an ad, and if so, jump back to it.
                         long newSeekPositionMs = positionMs;
-                        if (mStreamManager != null) {
-                            CuePoint prevCuePoint = mStreamManager.getPreviousCuePointForStreamTime(
-                                    positionMs / 1000);
+                        if (streamManager != null) {
+                            CuePoint prevCuePoint = streamManager.getPreviousCuePointForStreamTime(
+                                    positionMs / 1000.0);
                             if (prevCuePoint != null && !prevCuePoint.isPlayed()) {
                                 newSeekPositionMs = (long) (prevCuePoint.getStartTime() * 1000);
                             }
                         }
-                        mVideoPlayer.seekTo(windowIndex, newSeekPositionMs);
+                        videoPlayer.seekTo(windowIndex, newSeekPositionMs);
                     }
                 });
-        mDisplayContainer.setVideoStreamPlayer(videoStreamPlayer);
-        mDisplayContainer.setAdContainer(mAdUiContainer);
-        mAdsLoader = mSdkFactory.createAdsLoader(mContext, settings, mDisplayContainer);
+        streamDisplayContainer.setVideoStreamPlayer(videoStreamPlayer);
+        streamDisplayContainer.setAdContainer(webView);
+        adsLoader = sdkFactory.createAdsLoader(context, settings, streamDisplayContainer);
     }
 
     public void requestAndPlayAds() {
-        mAdsLoader.addAdErrorListener(this);
-        mAdsLoader.addAdsLoadedListener(this);
-        mAdsLoader.requestStream(buildStreamRequest());
+        adsLoader.addAdErrorListener(this);
+        adsLoader.addAdsLoadedListener(this);
+        adsLoader.requestStream(buildStreamRequest());
     }
 
     private StreamRequest buildStreamRequest() {
@@ -176,10 +186,10 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
         switch (CONTENT_TYPE) {
             case LIVE_HLS:
                 // Live HLS stream request.
-                return mSdkFactory.createLiveStreamRequest(TEST_ASSET_KEY, null);
+                return sdkFactory.createLiveStreamRequest(TEST_ASSET_KEY, null);
             case VOD_HLS:
                 // VOD HLS request.
-                request = mSdkFactory.createVodStreamRequest(
+                request = sdkFactory.createVodStreamRequest(
                         TEST_HLS_CONTENT_SOURCE_ID,
                         TEST_HLS_VIDEO_ID,
                         null); // apiKey
@@ -187,7 +197,7 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
                 return request;
             case VOD_DASH:
                 // VOD DASH request.
-                request = mSdkFactory.createVodStreamRequest(
+                request = sdkFactory.createVodStreamRequest(
                         TEST_DASH_CONTENT_SOURCE_ID,
                         TEST_DASH_VIDEO_ID,
                         null); // apiKey
@@ -203,8 +213,8 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
         return new VideoStreamPlayer() {
             @Override
             public void loadUrl(String url, List<HashMap<String, String>> subtitles) {
-                mVideoPlayer.setStreamUrl(url);
-                mVideoPlayer.play();
+                videoPlayer.setStreamUrl(url);
+                videoPlayer.play();
             }
 
             @Override
@@ -215,25 +225,25 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
 
             @Override
             public void addCallback(VideoStreamPlayerCallback videoStreamPlayerCallback) {
-                mPlayerCallbacks.add(videoStreamPlayerCallback);
+                videoPlayerCallbacks.add(videoStreamPlayerCallback);
             }
 
             @Override
             public void removeCallback(VideoStreamPlayerCallback videoStreamPlayerCallback) {
-                mPlayerCallbacks.remove(videoStreamPlayerCallback);
+                videoPlayerCallbacks.remove(videoStreamPlayerCallback);
             }
 
             @Override
             public void onAdBreakStarted() {
                 // Disable player controls.
-                mVideoPlayer.enableControls(false);
+                videoPlayer.enableControls(false);
                 log("Ad Break Started\n");
             }
 
             @Override
             public void onAdBreakEnded() {
                 // Re-enable player controls.
-                mVideoPlayer.enableControls(true);
+                videoPlayer.enableControls(true);
                 log("Ad Break Ended\n");
             }
 
@@ -250,14 +260,14 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
             @Override
             public void seek(long timeMs) {
                 // An ad was skipped. Skip to the content time.
-                mVideoPlayer.seekTo(timeMs);
+                videoPlayer.seekTo(timeMs);
                 log("seek");
             }
 
             @Override
             public VideoProgressUpdate getContentProgress() {
                 return new VideoProgressUpdate(
-                    mVideoPlayer.getCurrentPositionPeriod(), mVideoPlayer.getDuration()
+                    videoPlayer.getCurrentPositionPeriod(), videoPlayer.getDuration()
                 );
             }
         };
@@ -271,9 +281,9 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
         log(String.format("Error: %s\n", event.getError().getMessage()));
         // play fallback URL.
         log("Playing fallback Url\n");
-        mVideoPlayer.setStreamUrl(mFallbackUrl);
-        mVideoPlayer.enableControls(true);
-        mVideoPlayer.play();
+        videoPlayer.setStreamUrl(fallbackUrl);
+        videoPlayer.enableControls(true);
+        videoPlayer.play();
     }
 
     /**
@@ -283,7 +293,7 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
     public void onAdEvent(AdEvent event) {
         switch (event.getType()) {
             case AD_PROGRESS:
-                checkAndInjectAdProgressInfo(mStreamManager.getAdProgressInfo());
+                checkAndInjectAdProgressInfo(streamManager.getAdProgressInfo());
                 break;
             case STARTED:
                 checkAndStartInteractiveAd(event.getAd());
@@ -322,33 +332,33 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
      **/
     @Override
     public void onAdsManagerLoaded(AdsManagerLoadedEvent event) {
-        mStreamManager = event.getStreamManager();
-        mStreamManager.addAdErrorListener(this);
-        mStreamManager.addAdEventListener(this);
-        mStreamManager.init();
+        streamManager = event.getStreamManager();
+        streamManager.addAdErrorListener(this);
+        streamManager.addAdEventListener(this);
+        streamManager.init();
     }
 
     /**
      * Sets fallback URL in case ads stream fails.
      **/
     void setFallbackUrl(String url) {
-        mFallbackUrl = url;
+        fallbackUrl = url;
     }
 
     /**
      * Sets logger for displaying events to screen. Optional.
      **/
     void setLogger(Logger logger) {
-        mLogger = logger;
+        this.logger = logger;
     }
 
     void setAdvertisingId(String value) {
-        mAdvertisingId = value;
+        advertisingId = value;
     }
 
     private void log(String message) {
-        if (mLogger != null) {
-            mLogger.log(message);
+        if (logger != null) {
+            logger.log(message);
         }
     }
 
@@ -362,80 +372,81 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
         }
 
         // remove default ad position indicator
-        mAdUiContainer.setVisibility(View.GONE);
+        adUiContainer.setVisibility(View.GONE);
 
         // create and start innovid ad
-        mInteractiveAd = new InnovidAdWrapper(mWebView, iAd, mAdvertisingId);
-        mInteractiveAd.setAdEventListener(new InnovidAdWrapper.InnovidAdEventListener() {
+        innovidAdWrapper = new InnovidAdWrapper(webView, iAd, advertisingId);
+        innovidAdWrapper.setAdEventListener(new InnovidAdWrapper.InnovidAdEventListener() {
             @Override
             public void onInnovidAdEvent(InnovidAdWrapper.InnovidAdEventType type) {
-                mLogger.log(String.format("onInnovidAdEvent(%s)", type));
+                logger.log(String.format("onInnovidAdEvent(%s)", type));
             }
         });
 
-        mInteractiveAd.setAdPlaybackRequestListener(new InnovidAdWrapper.InnovidAdPlaybackRequestListener() {
-            private boolean mRestartRequested = false;
+        innovidAdWrapper.setAdPlaybackRequestListener(new InnovidAdWrapper.InnovidAdPlaybackRequestListener() {
 
             @Override
             public void onPauseRequest() {
-                mLogger.log("onPauseRequest()");
-
-                mVideoPlayer.pause();
+                logger.log("onPauseRequest()");
+                videoPlayer.pause();
+                videoPlayerContainer.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        videoPlayerContainer.setVisibility(View.INVISIBLE);
+                    }
+                });
             }
 
             @Override
             public void onResumeRequest() {
-                mLogger.log("onResumeRequest()");
+                logger.log("onResumeRequest()");
+                videoPlayerContainer.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        videoPlayerContainer.setVisibility(View.VISIBLE);
+                    }
+                });
 
-                if (mRestartRequested) {
-//                    mVideoPlayer.setVisibility(View.VISIBLE);
-                }
-
-                mVideoPlayer.resume();
+                videoPlayer.resume();
             }
 
             @Override
             public void onStopAndRestartOnNextResumeRequest() {
-                mLogger.log("onStopAndRestartOnNextResumeRequest()");
-
-                mRestartRequested = true;
-
-//                mVideoPlayer.stop();
-//                mVideoPlayer.setVisibility(View.GONE);
+                logger.log("onStopAndRestartOnNextResumeRequest()");
             }
         });
-        mInteractiveAd.start();
+        innovidAdWrapper.start();
     }
 
     private void checkAndStopInteractiveAd() {
-        if (mInteractiveAd == null) {
+        if (innovidAdWrapper == null) {
             return;
         }
 
-        mInteractiveAd.requestStop();
-        mInteractiveAd = null;
+        innovidAdWrapper.requestStop();
+        innovidAdWrapper = null;
     }
 
     private void checkAndInjectAdProgressInfo(AdProgressInfo info) {
-        if (mInteractiveAd != null && mVideoPlayer.getPlaybackState() != SampleVideoPlayer.STOPPED) {
-            final InnovidAdWrapper.SSAIPlaybackState playbackState = mVideoPlayer.getPlaybackState() == SampleVideoPlayer.PLAYING
+        if (innovidAdWrapper != null && videoPlayer.getPlaybackState() != SampleVideoPlayer.STOPPED) {
+            final InnovidAdWrapper.SSAIPlaybackState playbackState = videoPlayer.getPlaybackState() == SampleVideoPlayer.PLAYING
                     ? InnovidAdWrapper.SSAIPlaybackState.PLAYING
                     : InnovidAdWrapper.SSAIPlaybackState.PAUSED
             ;
 
-            mInteractiveAd.injectPlaybackProgressInfo(
+            innovidAdWrapper.injectPlaybackProgressInfo(
                     playbackState, info.getCurrentTime(), info.getDuration()
             );
         }
     }
 
     private void disposeCurrentInteractiveAd() {
-        if (mInteractiveAd == null) {
+        if (innovidAdWrapper == null) {
             return;
         }
 
-        mInteractiveAd.enforceStop();
-        mInteractiveAd = null;
+        innovidAdWrapper.enforceStop();
+        innovidAdWrapper = null;
     }
 
     private CompanionAd findInteractiveAdInfo(List<CompanionAd> companionAds) {
@@ -461,7 +472,7 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
 
         return apiFramework != null
                 && url != null
-                && apiFramework.toLowerCase().equals("innovid")
+                && apiFramework.equalsIgnoreCase("innovid")
                 && (url.contains(".html?") || url.contains("tag/get.php?tag="))
         ;
     }
