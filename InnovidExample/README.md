@@ -21,8 +21,6 @@ If any companion has an `apiFramework` value matching `innovid` and is an HTML f
 Once we have the **companion url**, we can initialize the innovid ads wrapper 
 and set playback listener and ad events listener. Make sure to pass the webview, companion URL, and advertising ID.
 
-**Important** Make sure to define your PlayerView ```surface_type="texture_view"```
-
 [Example][instantiate_iroll link]
 
 ```
@@ -36,11 +34,31 @@ mInteractiveAd.start();
     
 
 ## 4. Respond to renderer `playback-request` events
-For SSAI, Innovid does not control video playback. This means that for formats that would normally affect stream playback we pass events that should be listened and responded to correctly. For pause, you should pause video playback until resume is provided.
+For SSAI, Innovid does not control video playback. This means that for formats that would normally affect stream playback we pass events that should be listened and responded to correctly. For pause, you should pause video playback until resume is provided. To support older devices running Fire OS 6 or below, your host app's video player container should be hidden due to resource limitations/bugs in the host operating system. 
 
-- `onPauseRequest` [Example][handle_playback_pause_request link]
+ - `onPauseRequest` [Example][handle_playback_pause_request link]
+
+Sample:
+```
+@Override
+public void onPauseRequest() {
+    logger.log("onPauseRequest()");
+    videoPlayer.pause();
+    videoPlayerContainer.post(() -> videoPlayerContainer.setVisibility(View.INVISIBLE));
+}
+```
+
 - `onResumeRequest` [Example][handle_playback_resume_request link]
 
+```
+@Override
+public void onResumeRequest() {
+    logger.log("onResumeRequest()");
+    videoPlayerContainer.post(() -> videoPlayerContainer.setVisibility(View.VISIBLE));
+
+    videoPlayer.resume();
+}
+```
 ## 5. Provide playback updates
 In order to accurately track video progress, you must provide regular playback updates to the Innovid ad object on IMA `AD_PROGRESS event` in `onAdEvent`
 

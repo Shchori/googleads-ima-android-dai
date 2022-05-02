@@ -389,23 +389,13 @@ public class SampleAdsWrapper implements AdEvent.AdEventListener, AdErrorEvent.A
             public void onPauseRequest() {
                 logger.log("onPauseRequest()");
                 videoPlayer.pause();
-                videoPlayerContainer.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        videoPlayerContainer.setVisibility(View.INVISIBLE);
-                    }
-                });
+                videoPlayerContainer.post(() -> videoPlayerContainer.setVisibility(View.INVISIBLE));
             }
 
             @Override
             public void onResumeRequest() {
                 logger.log("onResumeRequest()");
-                videoPlayerContainer.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        videoPlayerContainer.setVisibility(View.VISIBLE);
-                    }
-                });
+                videoPlayerContainer.post(() -> videoPlayerContainer.setVisibility(View.VISIBLE));
 
                 videoPlayer.resume();
             }
