@@ -153,7 +153,7 @@ public class InnovidAdWrapper {
             public boolean onKey(View view, int i, KeyEvent keyEvent) {
                 Log.d(CAT, String.format("onKey(key: %s, action: %s)", i, keyEvent.getAction()));
                 // Check if the key event was the Back button and if there's history
-                if (i == KeyEvent.KEYCODE_BACK && keyEvent.getAction() == KeyEvent.ACTION_DOWN && mWebView.canGoBack()) {
+                if (i == KeyEvent.KEYCODE_BACK && keyEvent.getAction() == KeyEvent.ACTION_DOWN) {
                     mWebView.goBack();
                     return true;
                 }
